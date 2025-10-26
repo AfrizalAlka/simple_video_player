@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Video Player</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <h1>🎬 Simple Video Player</h1>
+            <p>Pilih folder untuk menampilkan video</p>
+        </header>
+
+        <div class="controls">
+            <input type="file" id="folderInput" webkitdirectory directory multiple accept="video/*">
+            <label for="folderInput" class="folder-btn">
+                📁 Pilih Folder Video
+            </label>
+        </div>
+
+        <div class="content">
+            <aside class="video-list">
+                <h2>Daftar Video</h2>
+                <div id="videoListContainer">
+                    <p class="placeholder">Belum ada video dipilih. Silakan pilih folder terlebih dahulu.</p>
+                </div>
+            </aside>
+
+            <main class="video-player">
+                <div id="videoPlayerContainer">
+                    <div class="placeholder-player">
+                        <div class="icon">🎥</div>
+                        <p>Pilih video dari daftar untuk memutar</p>
+                    </div>
+                </div>
+                <div id="videoInfo" class="video-info" style="display: none;">
+                    <h3 id="videoTitle">Judul Video</h3>
+                    <div class="video-details">
+                        <span id="videoSize">Ukuran: -</span>
+                        <span id="videoType">Type: -</span>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+
+</html>
