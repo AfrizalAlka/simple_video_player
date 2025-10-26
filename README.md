@@ -31,20 +31,27 @@ Video player berbasis website yang dapat membuka folder dan menampilkan seluruh 
 
 ## Format Video yang Didukung
 
-✅ **Format yang BISA diputar di browser:**
-- MP4 (H.264/H.265) - **Recommended**
-- WebM (VP8/VP9)
-- OGG (Theora)
-- MOV (tergantung codec)
-- M4V
+✅ **Format dengan support terbaik (Recommended):**
+- **MP4** (H.264/H.265) - Universal, semua browser
+- **WebM** (VP8/VP9) - Chrome, Firefox, Edge
+- **M4V** - Mirip MP4
 
-❌ **Format yang TIDAK didukung browser:**
-- MKV (Matroska) - Perlu di-convert ke MP4
-- AVI - Perlu di-convert ke MP4
-- WMV - Perlu di-convert ke MP4
-- FLV - Perlu di-convert ke MP4
+⚠️ **Format dengan support terbatas:**
+- **MKV** (Matroska) - Tergantung codec & browser
+- **AVI** - Tergantung codec & browser
+- **OGG** (Theora) - Firefox, Chrome
+- **MOV** (QuickTime) - Tergantung codec
+- **WMV** - Support sangat terbatas
+- **FLV** - Support sangat terbatas
 
-> **Catatan:** Browser modern (Chrome, Firefox, Edge) tidak mendukung format MKV, AVI, WMV, dan FLV secara native melalui HTML5 `<video>` tag. Gunakan tools seperti [HandBrake](https://handbrake.fr/) atau [FFmpeg](https://ffmpeg.org/) untuk convert video ke format MP4.
+> **Catatan Penting:** 
+> - Video player ini akan **mencoba memutar semua format** termasuk MKV
+> - **Kemampuan memutar MKV tergantung pada:**
+>   1. Browser yang digunakan (Chrome/Edge paling baik)
+>   2. Codec video di dalam file MKV (H.264 paling kompatibel)
+>   3. Sistem operasi Anda
+> - Jika MKV tidak bisa diputar, **gunakan VLC** atau **convert ke MP4**
+> - Tools convert: [HandBrake](https://handbrake.fr/), [FFmpeg](https://ffmpeg.org/), atau VLC Media Player
 
 ## Teknologi
 

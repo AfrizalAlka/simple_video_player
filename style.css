@@ -115,6 +115,22 @@ header p {
     text-align: center;
 }
 
+.info-message {
+    background: #d1ecf1;
+    color: #0c5460;
+    padding: 10px 15px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    border: 1px solid #bee5eb;
+    font-size: 0.9em;
+    text-align: center;
+}
+
+.format-badge {
+    font-size: 0.8em;
+    opacity: 0.7;
+}
+
 .placeholder-player.error {
     color: #dc3545;
 }
