@@ -1,5 +1,7 @@
 // Global variables
 let videoFiles = [];
+let subtitleFiles = [];
+let allFiles = [];
 let currentVideoIndex = -1;
 
 // DOM elements
@@ -15,6 +17,9 @@ const videoType = document.getElementById('videoType');
 // Note: Some formats may not play depending on browser and codec support
 const videoFormats = ['.mp4', '.webm', '.ogg', '.mov', '.m4v', '.mkv', '.avi', '.wmv', '.flv', '.3gp', '.mpg', '.mpeg'];
 
+// Supported subtitle formats
+const subtitleFormats = ['.srt', '.vtt', '.ass', '.ssa'];
+
 // Highly supported formats (recommended)
 const recommendedFormats = ['.mp4', '.webm', '.m4v'];
 
@@ -24,11 +29,18 @@ folderInput.addEventListener('change', handleFolderSelect);
 // Handle folder selection
 function handleFolderSelect(event) {
     const files = Array.from(event.target.files);
+    allFiles = files;
 
     // Filter video files
     videoFiles = files.filter(file => {
         const extension = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
         return videoFormats.includes(extension);
+    });
+
+    // Filter subtitle files
+    subtitleFiles = files.filter(file => {
+        const extension = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
+        return subtitleFormats.includes(extension);
     });
 
     // Sort videos alphabetically
@@ -44,7 +56,7 @@ function handleFolderSelect(event) {
     // Show info message about format support
     const infoMsg = document.createElement('div');
     infoMsg.className = 'info-message';
-    infoMsg.innerHTML = `📹 ${videoFiles.length} video ditemukan. Format MKV/AVI mungkin tidak dapat diputar tergantung codec dan browser.`;
+    infoMsg.innerHTML = `📹 ${videoFiles.length} video ditemukan${subtitleFiles.length > 0 ? `, 📄 ${subtitleFiles.length} subtitle` : ''}. Format MKV/AVI mungkin tidak dapat diputar tergantung codec dan browser.`;
     videoListContainer.insertBefore(infoMsg, videoListContainer.firstChild);
 }
 
@@ -119,21 +131,53 @@ function playVideo(index) {
     }
 
     videoPlayerContainer.innerHTML = `
-        <video controls autoplay preload="auto">
+        <video id="mainVideo" controls autoplay preload="auto" crossorigin="anonymous">
             <source src="${videoURL}" type="${mimeType}">
             <source src="${videoURL}">
             Browser Anda tidak mendukung pemutaran video ini.
         </video>
+        <div class="subtitle-controls">
+            <button id="subtitleToggle" class="subtitle-btn" style="display: none;">
+                <span class="subtitle-icon">💬</span>
+                <span class="subtitle-text">Subtitle: OFF</span>
+            </button>
+            <select id="subtitleSelect" class="subtitle-select" style="display: none;">
+                <option value="">Tidak ada subtitle</option>
+            </select>
+        </div>
     `;
+
+    // Find matching subtitle files
+    const videoBaseName = file.name.substring(0, file.name.lastIndexOf('.'));
+    const matchingSubtitles = findMatchingSubtitles(videoBaseName);
 
     // Update video info
     videoTitle.textContent = file.name;
     videoSize.textContent = `Ukuran: ${formatFileSize(file.size)}`;
     videoType.textContent = `Type: ${extension.toUpperCase()} (${mimeType})`;
+    
+    if (matchingSubtitles.length > 0) {
+        videoType.textContent += ` | 📄 ${matchingSubtitles.length} subtitle tersedia`;
+    }
+    
     videoInfo.style.display = 'block';
 
     // Add event listener for video end (auto play next)
-    const videoElement = videoPlayerContainer.querySelector('video');
+    const videoElement = document.getElementById('mainVideo');
+    
+    // Load subtitles if available
+    if (matchingSubtitles.length > 0) {
+        loadSubtitles(videoElement, matchingSubtitles);
+    } else {
+        // Show info about embedded subtitles for MKV
+        if (extension === '.mkv') {
+            const subtitleInfo = document.createElement('div');
+            subtitleInfo.className = 'info-message';
+            subtitleInfo.style.marginTop = '10px';
+            subtitleInfo.innerHTML = `⚠️ Video MKV mungkin memiliki softsub embedded. Browser tidak bisa mengekstrak subtitle dari MKV. Silakan ekstrak subtitle (.srt) secara manual menggunakan tools seperti <strong>MKVToolNix</strong> atau <strong>FFmpeg</strong>.`;
+            videoInfo.appendChild(subtitleInfo);
+        }
+    }
 
     // Show loading state
     videoElement.addEventListener('loadstart', function () {
@@ -193,6 +237,168 @@ function formatFileSize(bytes) {
     const i = Math.floor(Math.log(bytes) / Math.log(k));
 
     return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
+}
+
+// Find matching subtitle files for a video
+function findMatchingSubtitles(videoBaseName) {
+    return subtitleFiles.filter(subtitle => {
+        const subtitleBaseName = subtitle.name.substring(0, subtitle.name.lastIndexOf('.'));
+        // Check if subtitle name matches video name (exact or contains)
+        return subtitleBaseName === videoBaseName || 
+               subtitleBaseName.startsWith(videoBaseName) ||
+               videoBaseName.startsWith(subtitleBaseName);
+    });
+}
+
+// Load subtitles into video player
+function loadSubtitles(videoElement, subtitles) {
+    const subtitleToggle = document.getElementById('subtitleToggle');
+    const subtitleSelect = document.getElementById('subtitleSelect');
+    
+    if (subtitles.length === 0) return;
+
+    // Show subtitle controls
+    subtitleToggle.style.display = 'inline-flex';
+    subtitleSelect.style.display = 'inline-block';
+
+    // Clear existing options
+    subtitleSelect.innerHTML = '<option value="">Tidak ada subtitle</option>';
+
+    // Add subtitle tracks
+    subtitles.forEach((subtitleFile, index) => {
+        const subtitleURL = URL.createObjectURL(subtitleFile);
+        const extension = subtitleFile.name.substring(subtitleFile.name.lastIndexOf('.')).toLowerCase();
+        
+        // Determine subtitle format
+        let subtitleKind = 'subtitles';
+        let subtitleType = 'vtt';
+        
+        if (extension === '.srt') {
+            subtitleType = 'srt';
+        } else if (extension === '.vtt') {
+            subtitleType = 'vtt';
+        } else if (extension === '.ass' || extension === '.ssa') {
+            subtitleType = 'ass';
+        }
+
+        // Convert SRT to VTT if needed
+        if (extension === '.srt') {
+            convertSrtToVtt(subtitleFile).then(vttBlob => {
+                const vttURL = URL.createObjectURL(vttBlob);
+                const track = document.createElement('track');
+                track.kind = subtitleKind;
+                track.label = subtitleFile.name;
+                track.srclang = 'id';
+                track.src = vttURL;
+                track.default = index === 0; // Set first subtitle as default
+                videoElement.appendChild(track);
+
+                // Add to select dropdown
+                const option = document.createElement('option');
+                option.value = index;
+                option.textContent = subtitleFile.name;
+                if (index === 0) option.selected = true;
+                subtitleSelect.appendChild(option);
+            }).catch(err => {
+                console.error('Error converting SRT to VTT:', err);
+            });
+        } else if (extension === '.vtt') {
+            const track = document.createElement('track');
+            track.kind = subtitleKind;
+            track.label = subtitleFile.name;
+            track.srclang = 'id';
+            track.src = subtitleURL;
+            track.default = index === 0;
+            videoElement.appendChild(track);
+
+            // Add to select dropdown
+            const option = document.createElement('option');
+            option.value = index;
+            option.textContent = subtitleFile.name;
+            if (index === 0) option.selected = true;
+            subtitleSelect.appendChild(option);
+        }
+    });
+
+    // Enable first subtitle by default
+    setTimeout(() => {
+        if (videoElement.textTracks.length > 0) {
+            videoElement.textTracks[0].mode = 'showing';
+            subtitleToggle.querySelector('.subtitle-text').textContent = 'Subtitle: ON';
+            subtitleToggle.classList.add('active');
+        }
+    }, 100);
+
+    // Toggle subtitle on/off
+    subtitleToggle.onclick = () => {
+        const tracks = videoElement.textTracks;
+        let anyActive = false;
+        
+        for (let i = 0; i < tracks.length; i++) {
+            if (tracks[i].mode === 'showing') {
+                tracks[i].mode = 'hidden';
+                anyActive = false;
+            } else if (tracks[i].mode === 'hidden') {
+                tracks[i].mode = 'showing';
+                anyActive = true;
+                break;
+            }
+        }
+
+        subtitleToggle.querySelector('.subtitle-text').textContent = anyActive ? 'Subtitle: ON' : 'Subtitle: OFF';
+        if (anyActive) {
+            subtitleToggle.classList.add('active');
+        } else {
+            subtitleToggle.classList.remove('active');
+        }
+    };
+
+    // Change subtitle track
+    subtitleSelect.onchange = (e) => {
+        const selectedIndex = parseInt(e.target.value);
+        const tracks = videoElement.textTracks;
+        
+        // Disable all tracks
+        for (let i = 0; i < tracks.length; i++) {
+            tracks[i].mode = 'hidden';
+        }
+
+        // Enable selected track
+        if (!isNaN(selectedIndex) && selectedIndex >= 0 && selectedIndex < tracks.length) {
+            tracks[selectedIndex].mode = 'showing';
+            subtitleToggle.querySelector('.subtitle-text').textContent = 'Subtitle: ON';
+            subtitleToggle.classList.add('active');
+        } else {
+            subtitleToggle.querySelector('.subtitle-text').textContent = 'Subtitle: OFF';
+            subtitleToggle.classList.remove('active');
+        }
+    };
+}
+
+// Convert SRT subtitle to VTT format
+function convertSrtToVtt(srtFile) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                let srtContent = e.target.result;
+                
+                // Convert SRT to VTT
+                let vttContent = 'WEBVTT\n\n';
+                
+                // Replace timestamps format from SRT (00:00:00,000) to VTT (00:00:00.000)
+                vttContent += srtContent.replace(/(\d{2}):(\d{2}):(\d{2}),(\d{3})/g, '$1:$2:$3.$4');
+                
+                // Create blob
+                const vttBlob = new Blob([vttContent], { type: 'text/vtt' });
+                resolve(vttBlob);
+            } catch (err) {
+                reject(err);
+            }
+        };
+        reader.onerror = reject;
+        reader.readAsText(srtFile);
+    });
 }
 
 // Keyboard shortcuts
