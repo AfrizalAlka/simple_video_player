@@ -116,10 +116,7 @@ header h1 {
     margin-bottom: 15px;
     text-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
     font-weight: 800;
-    background: linear-gradient(135deg, #fff 0%, #e0e7ff 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    color: white;
     letter-spacing: -1px;
 }
 
